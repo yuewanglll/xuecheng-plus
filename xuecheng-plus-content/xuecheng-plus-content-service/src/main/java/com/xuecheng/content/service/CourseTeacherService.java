@@ -1,7 +1,7 @@
 package com.xuecheng.content.service;
 
-import com.xuecheng.content.model.po.CourseTeacher;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.xuecheng.content.model.po.CourseTeacher;
 
 import java.util.List;
 
