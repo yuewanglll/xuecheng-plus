@@ -1,0 +1,25 @@
+###
+GET http://localhost:8080/depts
+
+###
+POST http://localhost:8080/login
+
+###
+GET http://localhost:8080/carts?
+    ids={{$placeholder}}
+
+###
+GET http://localhost:8080/carts?
+    ids={{$placeholder}}
+
+
+###
+POST http://{{content_host}}/content/course/list?pageNo=2&pageSize=10
+Content-Type: application/json
+
+{
+  "auditStatus": "",
+  "courseName": "java",
+  "publishStatus": ""
+}
+
