@@ -1,0 +1,10 @@
+#微服务配置
+spring:
+  application:
+    name: system-service
+  cloud:
+    nacos:
+      server-addr: 192.168.174.134:8848
+      discovery:
+        namespace: dev
+        group: xuecheng-plus-project

@@ -13,14 +13,14 @@ GET http://localhost:8080/carts?
     ids={{$placeholder}}
 
 
-###
-POST http://{{content_host}}/content/course/list?pageNo=2&pageSize=10
+### 课程查询
+POST http://{{gateway_host}}/content/course/list?pageNo=2&pageSize=10
 Content-Type: application/json
 
 {
-  "auditStatus": "",
+  "auditStatus": "202004",
   "courseName": "java",
-  "publishStatus": ""
+  "publishStatus": "203001"
 }
 
 ### 创建课程
