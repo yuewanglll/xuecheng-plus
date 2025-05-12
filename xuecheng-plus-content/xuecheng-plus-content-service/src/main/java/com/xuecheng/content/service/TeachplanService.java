@@ -17,6 +17,8 @@ import java.util.List;
  */
 public interface TeachplanService extends IService<Teachplan> {
 
+
+
     /**
      * 查询课程计划信息
      * @param courseId
@@ -32,4 +34,10 @@ public interface TeachplanService extends IService<Teachplan> {
      * @date 2022/9/9 13:39
      */
     public void saveTeachplan(SaveTeachplanDto teachplanDto);
+
+    // 上移课程计划
+    void moveUpTechPlan(Long id);
+
+    //下移课程计划
+    void moveDownTechPlan(Long id);
 }

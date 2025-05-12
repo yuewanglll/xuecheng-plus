@@ -27,6 +27,7 @@ public class CourseCategoryServiceImpl extends ServiceImpl<CourseCategoryMapper,
     @Autowired
     CourseCategoryMapper courseCategoryMapper;
 
+    //实现课程分类
     public List<CourseCategoryTreeDto> queryTreeNodes(String id) {
         List<CourseCategoryTreeDto> courseCategoryTreeDtos = courseCategoryMapper.selectTreeNodes(id);
         //将list转map,以备使用,排除根节点
@@ -35,10 +36,11 @@ public class CourseCategoryServiceImpl extends ServiceImpl<CourseCategoryMapper,
         List<CourseCategoryTreeDto> categoryTreeDtos = new ArrayList<>();
         //依次遍历每个元素,排除根节点
         courseCategoryTreeDtos.stream().filter(item -> !id.equals(item.getId())).forEach(item -> {
+            //二级节点添加到最终集合中
             if (item.getParentid().equals(id)) {
                 categoryTreeDtos.add(item);
             }
-            //找到当前节点的父节点
+            //找到当前节点的父节点（三级节点添加到二级节点）
             CourseCategoryTreeDto courseCategoryTreeDto = mapTemp.get(item.getParentid());
             if (courseCategoryTreeDto != null) {
                 if (courseCategoryTreeDto.getChildrenTreeNodes() == null) {

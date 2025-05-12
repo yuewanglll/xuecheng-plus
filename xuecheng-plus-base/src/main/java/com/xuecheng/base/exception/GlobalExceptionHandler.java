@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
      */
     @ResponseBody
     @ExceptionHandler(XueChengPlusException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)  //设置响应状态码为500
     public RestErrorResponse customException(XueChengPlusException e) {
         log.error("【系统异常】{}",e.getErrMessage(),e);
         return new RestErrorResponse(e.getErrMessage());

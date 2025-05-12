@@ -29,7 +29,9 @@ public class RestResponse<T> {
      */
     private T result;
 
-
+    /**
+     * 空参构造 默认为成功
+     */
     public RestResponse() {
         this(0, "success");
     }

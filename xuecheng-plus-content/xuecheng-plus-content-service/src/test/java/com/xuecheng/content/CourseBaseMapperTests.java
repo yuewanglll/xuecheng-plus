@@ -35,6 +35,7 @@ class CourseBaseMapperTests {
     void CourseBaseMapperTest() {
         //根据id查询数据
         CourseBase courseBase = courseBaseMapper.selectById(74L);
+        //junit 断言 如果courseBase为空测试方法直接失败
         Assertions.assertNotNull(courseBase);
 
         //测试查询接口
