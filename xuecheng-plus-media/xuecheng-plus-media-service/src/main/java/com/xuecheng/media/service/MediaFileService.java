@@ -70,4 +70,5 @@ public interface MediaFileService {
   */
  public RestResponse mergechunks(Long companyId, String fileMd5, int chunkTotal, UploadFileParamsDto uploadFileParamsDto);
 
+ boolean addMediaFilesToMinIO(String localChunkFilePath, String mimeType, String bucketFiles, String chunkFilePath);
 }

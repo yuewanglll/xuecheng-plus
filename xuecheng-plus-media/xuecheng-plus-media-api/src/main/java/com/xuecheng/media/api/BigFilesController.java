@@ -46,14 +46,24 @@ public class BigFilesController {
     public RestResponse uploadchunk(@RequestParam("file") MultipartFile file,
                                     @RequestParam("fileMd5") String fileMd5,
                                     @RequestParam("chunk") int chunk) throws Exception {
-
-        //创建临时文件
+        // 创建临时文件
         File tempFile = File.createTempFile("minio", "temp");
-        //上传的文件拷贝到临时文件
-        file.transferTo(tempFile);
-        //文件路径
-        String absolutePath = tempFile.getAbsolutePath();
-        return mediaFileService.uploadChunk(fileMd5, chunk, absolutePath);
+        try {
+            // 上传的文件拷贝到临时文件
+            file.transferTo(tempFile);
+            // 获取文件路径并上传到 MinIO
+            String absolutePath = tempFile.getAbsolutePath();
+            return mediaFileService.uploadChunk(fileMd5, chunk, absolutePath);
+        } finally {
+            // 无论上传成功与否，都尝试删除临时文件
+            if (tempFile.exists()) {
+                boolean deleted = tempFile.delete();
+                if (!deleted) {
+                    // 可以记录日志或尝试 deleteOnExit()
+                    System.err.println("无法删除临时文件: " + tempFile.getAbsolutePath());
+                }
+            }
+        }
     }
 
     @ApiOperation(value = "合并文件")

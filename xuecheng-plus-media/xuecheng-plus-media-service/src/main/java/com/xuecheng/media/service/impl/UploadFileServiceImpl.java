@@ -37,7 +37,7 @@ public class UploadFileServiceImpl implements UploadFileService {
     private MediaFilesMapper mediaFilesMapper;
 
     @Autowired
-    private UploadFileServiceImpl currentProxy;
+    private UploadFileService currentProxy;
 
     //普通文件桶
     @Value("${minio.bucket.files}")

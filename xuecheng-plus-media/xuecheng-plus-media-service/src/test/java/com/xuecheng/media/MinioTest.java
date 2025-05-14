@@ -21,7 +21,7 @@ public class MinioTest {
     //创建minion的链接
     static MinioClient minioClient =
             MinioClient.builder()
-                    .endpoint("http://192.168.174.134:9000")
+                    .endpoint("http://127.0.0.1:9000")
                     .credentials("minioadmin", "minioadmin")
                     .build();
 
@@ -30,7 +30,7 @@ public class MinioTest {
     public void upload() {
         //根据扩展名取出mimeType
         ContentInfo extensionMatch = ContentInfoUtil.findExtensionMatch(".png");
-        String mimeType = MediaType.APPLICATION_OCTET_STREAM_VALUE;//通用mimeType，字节流
+        String mimeType = MediaType.APPLICATION_OCTET_STREAM_VALUE;//通用mimeType，字节流（默认值）
         if (extensionMatch != null) {
             mimeType = extensionMatch.getMimeType();
         }
@@ -38,7 +38,7 @@ public class MinioTest {
             UploadObjectArgs testbucket = UploadObjectArgs.builder()
                     .bucket("testbucket")
                     //.object("test001.mp4")
-                    .object("test")//添加子目录
+                    .object("test03/testPng")//添加子目录（minio中实际目录名字）
                     .filename("C:\\Users\\yuewangwang\\Desktop\\pusst\\test.png") //要上传的文件本地目录
                     .contentType(mimeType)//默认根据扩展名确定文件内容类型，也可以指定
                     .build();

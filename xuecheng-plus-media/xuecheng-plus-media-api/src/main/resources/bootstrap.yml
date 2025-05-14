@@ -2,13 +2,13 @@
 spring:
   servlet:
     multipart:
-      max-file-size: 50MB
-      max-request-size: 50MB
+      max-file-size: 50MB # 设置上传文件大小限制
+      max-request-size: 50MB #单次请求的大小限制
   application:
     name: media-api
   cloud:
     nacos:
-      server-addr: 192.168.174.134:8848
+      server-addr: 192.168.174.100:8848
       discovery:
         namespace: ${spring.profiles.active}
         group: xuecheng-plus-project

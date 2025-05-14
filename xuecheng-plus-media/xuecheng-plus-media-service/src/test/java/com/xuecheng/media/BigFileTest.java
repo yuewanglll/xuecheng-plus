@@ -4,7 +4,6 @@ import io.minio.*;
 import io.minio.messages.DeleteError;
 import io.minio.messages.DeleteObject;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -15,7 +14,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.xuecheng.media.MinioTest.minioClient;
 
 /**
  * @author Mr.M
@@ -25,12 +23,20 @@ import static com.xuecheng.media.MinioTest.minioClient;
  */
 public class BigFileTest {
 
+    //创建minion的链接
+    static MinioClient minioClient =
+            MinioClient.builder()
+                    .endpoint("http://127.0.0.1:9000")
+                    .credentials("minioadmin", "minioadmin")
+                    .build();
 
     //测试文件分块方法
     @Test
     public void testChunk() throws IOException {
-        File sourceFile = new File("源文件本地地址");
-        String chunkPath = "拆分源文件后保存的地址";
+        //源文件地址
+        File sourceFile = new File("D:\\编程文件夹\\测试图片\\aigeiwang.mp4");
+        //目的文件地址
+        String chunkPath = "D:\\编程文件夹\\测试图片\\media\\";
         File chunkFolder = new File(chunkPath);
         if (!chunkFolder.exists()) {
             //如果chunkFolder路径不存在就创建该路径
@@ -41,9 +47,9 @@ public class BigFileTest {
         //分块数量 Math.ceil向上取整
         long chunkNum = (long) Math.ceil(sourceFile.length() * 1.0 / chunkSize);
         System.out.println("分块总数：" + chunkNum);
-        //缓冲区大小
+        //缓冲区大小 1kb
         byte[] b = new byte[1024];
-        //使用RandomAccessFile访问文件
+        //使用RandomAccessFile访问文件  可以从文件任意位置开始读写  r表示只读
         RandomAccessFile raf_read = new RandomAccessFile(sourceFile, "r");
         //分块
         for (int i = 0; i < chunkNum; i++) {
@@ -56,7 +62,7 @@ public class BigFileTest {
             //创建chunkPath + i这个文件，创建成功返回true
             boolean newFile = file.createNewFile();
             if (newFile) {
-                //向分块文件中写数据
+                //向分块文件中写数据   rw表示读写
                 RandomAccessFile raf_write = new RandomAccessFile(file, "rw");
                 int len = -1;
                 //raf_read.read(b) 将源文件读到缓冲区
@@ -82,11 +88,11 @@ public class BigFileTest {
     @Test
     public void testMerge() throws IOException {
         //块文件目录
-        File chunkFolder = new File("拆快后的文件目录");
+        File chunkFolder = new File("D:\\编程文件夹\\测试图片\\media");
         //原始文件
-        File originalFile = new File("原始文件目录");
+        File originalFile = new File("D:\\编程文件夹\\测试图片\\aigeiwang.mp4");
         //合并文件
-        File mergeFile = new File("分块合并后的目录");
+        File mergeFile = new File("D:\\编程文件夹\\测试图片\\hebing\\");
         //合并文件的目录如果已经存在则删除
         if (mergeFile.exists()) {
             mergeFile.delete();
@@ -99,7 +105,7 @@ public class BigFileTest {
         raf_write.seek(0);
         //缓冲区
         byte[] b = new byte[1024];
-        //获取分块列表所以文件
+        //获取分块列表所以文件  listFiles返回所有文件和子目录
         File[] fileArray = chunkFolder.listFiles();
         // 转成集合，便于排序
         List<File> fileList = Arrays.asList(fileArray);
@@ -107,6 +113,7 @@ public class BigFileTest {
         Collections.sort(fileList, new Comparator<File>() {
             @Override
             public int compare(File o1, File o2) {
+                //此时文件块 1 2
                 return Integer.parseInt(o1.getName()) - Integer.parseInt(o2.getName());
             }
         });
@@ -141,7 +148,7 @@ public class BigFileTest {
     //将分块文件上传至minio
     @Test
     public void uploadChunk() {
-        String chunkFolderPath = "分块文件所在目录";
+        String chunkFolderPath = "D:\\编程文件夹\\测试图片\\media";
         File chunkFolder = new File(chunkFolderPath);
         //获取所有分块文件
         File[] files = chunkFolder.listFiles();
@@ -150,8 +157,8 @@ public class BigFileTest {
             try {
                 UploadObjectArgs uploadObjectArgs = UploadObjectArgs.builder()
                         .bucket("testbucket")
-                        .object("chunk/" + i)  //设置上传后的文件路径和名称  eg：文件名chunk/0
-                        .filename(files[i].getAbsolutePath())  //getAbsolutePath()获取每个文件或目录的结对路径  上传文件的绝对路径
+                        .object("testMp4/chunk/" + i)  //设置上传后的文件路径和名称  eg：文件名chunk/0
+                        .filename(files[i].getAbsolutePath())  //getAbsolutePath()获取每个文件或目录的绝对路径  （上传文件的绝对路径）
                         .build();
                 minioClient.uploadObject(uploadObjectArgs);
                 System.out.println("上传分块成功" + i);
@@ -159,18 +166,17 @@ public class BigFileTest {
                 e.printStackTrace();
             }
         }
-
     }
 
 
     //合并文件，要求分块文件最小5M
     @Test
     public void test_merge() throws Exception {
-        List<ComposeSource> sources = Stream.iterate(0, i -> ++i)  //创建Stream的无限流，每次循环i的指递增
-                .limit(6)  //无限流的最大值 i=0 1 2 3 4 5
+        List<ComposeSource> sources = Stream.iterate(0, i -> ++i)  //创建Stream的无限流，每次循环i的值递增
+                .limit(2)  //无限流的最大值 i=0 1 2 3 4 5    根据实际情况更改
                 .map(i -> ComposeSource.builder()   //将i映射到ComposeSource
                         .bucket("testbucket")
-                        .object("chunk/".concat(Integer.toString(i))) //要合并文件的目录
+                        .object("testMp4/chunk/".concat(Integer.toString(i))) //要合并文件的目录  将i转换成字符串拼接到chunk/后面
                         .build())
                 .collect(Collectors.toList());
 
@@ -189,8 +195,8 @@ public class BigFileTest {
     public void test_removeObjects() {
         //合并分块完成将分块文件清除
         List<DeleteObject> deleteObjects = Stream.iterate(0, i -> ++i)
-                .limit(6)
-                .map(i -> new DeleteObject("chunk/".concat(Integer.toString(i))))  //concat是String类提供的一个api，将一个字符串拼接到另一个字符串末尾
+                .limit(2)
+                .map(i -> new DeleteObject("testMp4/chunk/".concat(Integer.toString(i))))  //concat是String类提供的一个api，将一个字符串拼接到另一个字符串末尾
                 .collect(Collectors.toList());
 
         RemoveObjectsArgs removeObjectsArgs = RemoveObjectsArgs.builder().bucket("testbucket").objects(deleteObjects).build();
@@ -198,11 +204,10 @@ public class BigFileTest {
         results.forEach(r -> {   //遍历results每个删除结果  r表示单独删除操作的结果
             DeleteError deleteError = null;   // deleteError用于存储删除操作的错误信息
             try {
-                deleteError = r.get();  //实际上的删除动作 获取删除操作的结果，删除成功deleteError为null，删除失败deleteError将包含错误信息
+                deleteError = r.get();   //如果删除失败，r.get() 返回 DeleteError 对象，其中包含错误信息
             } catch (Exception e) {
                 e.printStackTrace();
             }
         });
     }
-
 }

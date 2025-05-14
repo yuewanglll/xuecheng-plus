@@ -19,7 +19,6 @@ import io.minio.messages.DeleteObject;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.compress.utils.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -52,7 +51,7 @@ public class MediaFileServiceImpl implements MediaFileService {
 
     //todo :后续需要改成视频桶
     //普通文件桶
-    @Value("${minio.bucket.files}")
+    @Value("${minio.bucket.videofiles}")
     private String bucket_Files;
 
 
@@ -142,7 +141,7 @@ public class MediaFileServiceImpl implements MediaFileService {
         return RestResponse.success(false);
     }
 
-    //得到分块文件的目录
+    //得到分块文件的目录  分块上传和分快上传前的检测都用到了该方法
     private String getChunkFileFolderPath(String fileMd5) {
         return fileMd5.substring(0, 1) + "/" + fileMd5.substring(1, 2) + "/" + fileMd5 + "/" + "chunk" + "/";
     }
@@ -166,7 +165,7 @@ public class MediaFileServiceImpl implements MediaFileService {
         //mimeType
         String mimeType = getMimeType(null);
         //将文件存储至minIO
-        boolean b = addMediaFilesToMinIO(localChunkFilePath, mimeType, bucket_Files, chunkFilePath);
+        boolean b = currentProxy.addMediaFilesToMinIO(localChunkFilePath, mimeType, bucket_Files, chunkFilePath);
         if (!b) {
             log.debug("上传分块文件失败:{}", chunkFilePath);
             return RestResponse.validfail(false, "上传分块失败");
@@ -185,11 +184,71 @@ public class MediaFileServiceImpl implements MediaFileService {
      * @param uploadFileParamsDto 文件信息
      * @return
      */
+
     @Override
     public RestResponse mergechunks(Long companyId, String fileMd5, int chunkTotal, UploadFileParamsDto uploadFileParamsDto) {
-        return null;
-    }
+        //=====获取分块文件路径=====
+        String chunkFileFolderPath = getChunkFileFolderPath(fileMd5);
+        //组成将分块文件路径组成 List<ComposeSource>
+        List<ComposeSource> sourceObjectList = Stream.iterate(0, i -> ++i)
+                .limit(chunkTotal)
+                .map(i -> ComposeSource.builder()
+                        .bucket(bucket_Files)
+                        .object(chunkFileFolderPath.concat(Integer.toString(i)))
+                        .build())
+                .collect(Collectors.toList());
+        //=====合并=====
+        //文件名称
+        String fileName = uploadFileParamsDto.getFilename();
+        //文件扩展名
+        String extName = fileName.substring(fileName.lastIndexOf("."));
+        //合并文件路径
+        String mergeFilePath = getFilePathByMd5(fileMd5, extName);
+        try {
+            //合并文件
+            ObjectWriteResponse response = minioClient.composeObject(
+                    ComposeObjectArgs.builder()
+                            .bucket(bucket_Files)
+                            .object(mergeFilePath)
+                            .sources(sourceObjectList)
+                            .build());
+            log.debug("合并文件成功:{}",mergeFilePath);
+        } catch (Exception e) {
+            log.debug("合并文件失败,fileMd5:{},异常:{}",fileMd5,e.getMessage(),e);
+            return RestResponse.validfail(false, "合并文件失败。");
+        }
 
+        // ====验证md5====
+        //下载合并后的文件
+        File minioFile = downloadFileFromMinIO(bucket_Files,mergeFilePath);
+        if(minioFile == null){
+            log.debug("下载合并后文件失败,mergeFilePath:{}",mergeFilePath);
+            return RestResponse.validfail(false, "下载合并后文件失败。");
+        }
+
+        try (InputStream newFileInputStream = new FileInputStream(minioFile)) {
+            //minio上文件的md5值
+            String md5Hex = DigestUtils.md5Hex(newFileInputStream);
+            //比较md5值，不一致则说明文件不完整
+            if(!fileMd5.equals(md5Hex)){
+                return RestResponse.validfail(false, "文件合并校验失败，最终上传失败。");
+            }
+            //文件大小
+            uploadFileParamsDto.setFileSize(minioFile.length());
+        }catch (Exception e){
+            log.debug("校验文件失败,fileMd5:{},异常:{}",fileMd5,e.getMessage(),e);
+            return RestResponse.validfail(false, "文件合并校验失败，最终上传失败。");
+        }finally {
+            if(minioFile!=null){
+                minioFile.delete();
+            }
+        }
+        //文件入库
+        currentProxy.addMediaFilesToMinIO(mergeFilePath,null,bucket_Files,mergeFilePath);
+        //=====清除分块文件=====
+        clearChunkFiles(chunkFileFolderPath,chunkTotal);
+        return RestResponse.success(true);
+    }
 
     /**
      * @param localFilePath 文件地址
@@ -297,7 +356,7 @@ public class MediaFileServiceImpl implements MediaFileService {
                     .map(i -> new DeleteObject(chunkFileFolderPath.concat(Integer.toString(i))))
                     .collect(Collectors.toList());
 
-            RemoveObjectsArgs removeObjectsArgs = RemoveObjectsArgs.builder().bucket("video").objects(deleteObjects).build();
+            RemoveObjectsArgs removeObjectsArgs = RemoveObjectsArgs.builder().bucket(bucket_Files).objects(deleteObjects).build();
             Iterable<Result<DeleteError>> results = minioClient.removeObjects(removeObjectsArgs);
             results.forEach(r -> {
                 DeleteError deleteError = null;
