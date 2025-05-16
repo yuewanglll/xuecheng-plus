@@ -27,11 +27,9 @@ public class UserServiceImpl implements UserDetailsService {
     XcUserMapper xcUserMapper;
 
     /**
-     * @description 查询用户信息组成用户身份信息
-     * @param s  AuthParamsDto类型的json数据
+     * @param s AuthParamsDto类型的json数据
      * @return org.springframework.security.core.userdetails.UserDetails
-     * @author Mr.M
-     * @date 2022/9/28 18:30
+     * @description 查询用户信息组成用户身份信息
      */
     @Override
     public UserDetails loadUserByUsername(String s) throws UsernameNotFoundException {
@@ -41,18 +39,18 @@ public class UserServiceImpl implements UserDetailsService {
             //将认证参数转为AuthParamsDto类型
             authParamsDto = JSON.parseObject(s, AuthParamsDto.class);
         } catch (Exception e) {
-            log.info("认证请求不符合项目要求:{}",s);
+            log.info("认证请求不符合项目要求:{}", s);
             throw new RuntimeException("认证请求数据格式不对");
         }
         //账号
         String username = authParamsDto.getUsername();
         XcUser user = xcUserMapper.selectOne(new LambdaQueryWrapper<XcUser>().eq(XcUser::getUsername, username));
-        if(user==null){
+        if (user == null) {
             //返回空表示用户不存在
             return null;
         }
         //取出数据库存储的正确密码
-        String password  =user.getPassword();
+        String password = user.getPassword();
         //用户权限,如果不加报Cannot pass a null GrantedAuthority collection
         String[] authorities = {"p1"};
         //将user对象转json
@@ -61,6 +59,7 @@ public class UserServiceImpl implements UserDetailsService {
         UserDetails userDetails = User.withUsername(userString).password(password).authorities(authorities).build();
 
         return userDetails;
+
     }
 
 }

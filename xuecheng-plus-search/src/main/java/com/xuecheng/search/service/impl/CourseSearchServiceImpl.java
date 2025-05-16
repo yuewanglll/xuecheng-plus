@@ -31,9 +31,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Mr.M
@@ -58,13 +57,14 @@ public class CourseSearchServiceImpl implements CourseSearchService {
 
         //设置索引
         SearchRequest searchRequest = new SearchRequest(courseIndexStore);
-
+        //搜索条件构造器
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
         //source源字段过虑
         String[] sourceFieldsArray = sourceFields.split(",");
         searchSourceBuilder.fetchSource(sourceFieldsArray, new String[]{});
         if(courseSearchParam==null){
+            //搜索课程参数dtl
             courseSearchParam = new SearchCourseParamDto();
         }
         //关键字
